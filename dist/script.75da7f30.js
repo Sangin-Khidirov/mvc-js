@@ -117,8 +117,8 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   }
 
   return newRequire;
-})({"main.js":[function(require,module,exports) {
-'use strict';
+})({"script.js":[function(require,module,exports) {
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -126,23 +126,30 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); Object.defineProperty(Constructor, "prototype", { writable: false }); return Constructor; }
 
+/**
+ * @class Model
+ *
+ * Manages the data of the application.
+ */
 var Model = /*#__PURE__*/function () {
   function Model() {
     _classCallCheck(this, Model);
 
-    // The state of the model, an array of todo objects, prepopulated with some data
-    this.todos = [{
-      id: 1,
-      text: 'Run a marathon',
-      complete: false
-    }, {
-      id: 2,
-      text: 'Plant a garden',
-      complete: false
-    }];
+    this.todos = JSON.parse(localStorage.getItem('todos')) || [];
   }
 
   _createClass(Model, [{
+    key: "bindTodoListChanged",
+    value: function bindTodoListChanged(callback) {
+      this.onTodoListChanged = callback;
+    }
+  }, {
+    key: "_commit",
+    value: function _commit(todos) {
+      this.onTodoListChanged(todos);
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+  }, {
     key: "addTodo",
     value: function addTodo(todoText) {
       var todo = {
@@ -151,8 +158,9 @@ var Model = /*#__PURE__*/function () {
         complete: false
       };
       this.todos.push(todo);
-    } // Map through all todos, and replace the text of the todo with the specified id
 
+      this._commit(this.todos);
+    }
   }, {
     key: "editTodo",
     value: function editTodo(id, updatedText) {
@@ -163,16 +171,18 @@ var Model = /*#__PURE__*/function () {
           complete: todo.complete
         } : todo;
       });
-    } // Filter a todo out of the array by id
 
+      this._commit(this.todos);
+    }
   }, {
     key: "deleteTodo",
     value: function deleteTodo(id) {
       this.todos = this.todos.filter(function (todo) {
         return todo.id !== id;
       });
-    } // Flip the complete boolean on the specified todo
 
+      this._commit(this.todos);
+    }
   }, {
     key: "toggleTodo",
     value: function toggleTodo(id) {
@@ -183,24 +193,229 @@ var Model = /*#__PURE__*/function () {
           complete: !todo.complete
         } : todo;
       });
+
+      this._commit(this.todos);
     }
   }]);
 
   return Model;
 }();
+/**
+ * @class View
+ *
+ * Visual representation of the model.
+ */
 
-var View = /*#__PURE__*/_createClass(function View() {
-  _classCallCheck(this, View);
-});
+
+var View = /*#__PURE__*/function () {
+  function View() {
+    _classCallCheck(this, View);
+
+    this.app = this.getElement('#root');
+    this.form = this.createElement('form');
+    this.input = this.createElement('input');
+    this.input.type = 'text';
+    this.input.placeholder = 'Add todo';
+    this.input.name = 'todo';
+    this.submitButton = this.createElement('button');
+    this.submitButton.textContent = 'Submit';
+    this.form.append(this.input, this.submitButton);
+    this.title = this.createElement('h1');
+    this.title.textContent = 'Todos';
+    this.todoList = this.createElement('ul', 'todo-list');
+    this.app.append(this.title, this.form, this.todoList);
+    this._temporaryTodoText = '';
+
+    this._initLocalListeners();
+  }
+
+  _createClass(View, [{
+    key: "_todoText",
+    get: function get() {
+      return this.input.value;
+    }
+  }, {
+    key: "_resetInput",
+    value: function _resetInput() {
+      this.input.value = '';
+    }
+  }, {
+    key: "createElement",
+    value: function createElement(tag, className) {
+      var element = document.createElement(tag);
+      if (className) element.classList.add(className);
+      return element;
+    }
+  }, {
+    key: "getElement",
+    value: function getElement(selector) {
+      var element = document.querySelector(selector);
+      return element;
+    }
+  }, {
+    key: "displayTodos",
+    value: function displayTodos(todos) {
+      var _this = this;
+
+      // Delete all nodes
+      while (this.todoList.firstChild) {
+        this.todoList.removeChild(this.todoList.firstChild);
+      } // Show default message
+
+
+      if (todos.length === 0) {
+        var p = this.createElement('p');
+        p.textContent = 'Nothing to do! Add a task?';
+        this.todoList.append(p);
+      } else {
+        // Create nodes
+        todos.forEach(function (todo) {
+          var li = _this.createElement('li');
+
+          li.id = todo.id;
+
+          var checkbox = _this.createElement('input');
+
+          checkbox.type = 'checkbox';
+          checkbox.checked = todo.complete;
+
+          var span = _this.createElement('span');
+
+          span.contentEditable = true;
+          span.classList.add('editable');
+
+          if (todo.complete) {
+            var strike = _this.createElement('s');
+
+            strike.textContent = todo.text;
+            span.append(strike);
+          } else {
+            span.textContent = todo.text;
+          }
+
+          var deleteButton = _this.createElement('button', 'delete');
+
+          deleteButton.textContent = 'Delete';
+          li.append(checkbox, span, deleteButton); // Append nodes
+
+          _this.todoList.append(li);
+        });
+      } // Debugging
+
+
+      console.log(todos);
+    }
+  }, {
+    key: "_initLocalListeners",
+    value: function _initLocalListeners() {
+      var _this2 = this;
+
+      this.todoList.addEventListener('input', function (event) {
+        if (event.target.className === 'editable') {
+          _this2._temporaryTodoText = event.target.innerText;
+        }
+      });
+    }
+  }, {
+    key: "bindAddTodo",
+    value: function bindAddTodo(handler) {
+      var _this3 = this;
+
+      this.form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        if (_this3._todoText) {
+          handler(_this3._todoText);
+
+          _this3._resetInput();
+        }
+      });
+    }
+  }, {
+    key: "bindDeleteTodo",
+    value: function bindDeleteTodo(handler) {
+      this.todoList.addEventListener('click', function (event) {
+        if (event.target.className === 'delete') {
+          var id = parseInt(event.target.parentElement.id);
+          handler(id);
+        }
+      });
+    }
+  }, {
+    key: "bindEditTodo",
+    value: function bindEditTodo(handler) {
+      var _this4 = this;
+
+      this.todoList.addEventListener('focusout', function (event) {
+        if (_this4._temporaryTodoText) {
+          var id = parseInt(event.target.parentElement.id);
+          handler(id, _this4._temporaryTodoText);
+          _this4._temporaryTodoText = '';
+        }
+      });
+    }
+  }, {
+    key: "bindToggleTodo",
+    value: function bindToggleTodo(handler) {
+      this.todoList.addEventListener('change', function (event) {
+        if (event.target.type === 'checkbox') {
+          var id = parseInt(event.target.parentElement.id);
+          handler(id);
+        }
+      });
+    }
+  }]);
+
+  return View;
+}();
+/**
+ * @class Controller
+ *
+ * Links the user input and the view output.
+ *
+ * @param model
+ * @param view
+ */
+
 
 var Controller = /*#__PURE__*/_createClass(function Controller(model, view) {
+  var _this5 = this;
+
   _classCallCheck(this, Controller);
 
+  _defineProperty(this, "onTodoListChanged", function (todos) {
+    _this5.view.displayTodos(todos);
+  });
+
+  _defineProperty(this, "handleAddTodo", function (todoText) {
+    _this5.model.addTodo(todoText);
+  });
+
+  _defineProperty(this, "handleEditTodo", function (id, todoText) {
+    _this5.model.editTodo(id, todoText);
+  });
+
+  _defineProperty(this, "handleDeleteTodo", function (id) {
+    _this5.model.deleteTodo(id);
+  });
+
+  _defineProperty(this, "handleToggleTodo", function (id) {
+    _this5.model.toggleTodo(id);
+  });
+
   this.model = model;
-  this.view = view;
+  this.view = view; // Explicit this binding
+
+  this.model.bindTodoListChanged(this.onTodoListChanged);
+  this.view.bindAddTodo(this.handleAddTodo);
+  this.view.bindEditTodo(this.handleEditTodo);
+  this.view.bindDeleteTodo(this.handleDeleteTodo);
+  this.view.bindToggleTodo(this.handleToggleTodo); // Display initial todos
+
+  this.onTodoListChanged(this.model.todos);
 });
 
-var application = new Controller(new Model(), new View());
+var app = new Controller(new Model(), new View());
 },{}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
@@ -405,5 +620,5 @@ function hmrAcceptRun(bundle, id) {
     return true;
   }
 }
-},{}]},{},["../node_modules/parcel-bundler/src/builtins/hmr-runtime.js","main.js"], null)
-//# sourceMappingURL=/main.1f19ae8e.js.map
+},{}]},{},["../node_modules/parcel-bundler/src/builtins/hmr-runtime.js","script.js"], null)
+//# sourceMappingURL=/script.75da7f30.js.map
