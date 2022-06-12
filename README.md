@@ -1,1 +1,2 @@
-# mvc-js
+# mvc-projectJS
+A JavaScript project
