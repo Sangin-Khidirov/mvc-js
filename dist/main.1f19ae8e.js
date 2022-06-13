@@ -132,19 +132,21 @@ var Model = /*#__PURE__*/function () {
   function Model() {
     _classCallCheck(this, Model);
 
-    // The state of the model, an array of todo objects, prepopulated with some data
-    this.todos = [{
-      id: 1,
-      text: 'First one',
-      complete: false
-    }, {
-      id: 2,
-      text: 'Second one',
-      complete: false
-    }];
+    this.todos = JSON.parse(localStorage.getItem('todos')) || [];
   }
 
   _createClass(Model, [{
+    key: "bindTodoListChanged",
+    value: function bindTodoListChanged(callback) {
+      this.onTodoListChanged = callback;
+    }
+  }, {
+    key: "_commit",
+    value: function _commit(todos) {
+      this.onTodoListChanged(todos);
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+  }, {
     key: "addTodo",
     value: function addTodo(todoText) {
       var todo = {
@@ -153,8 +155,9 @@ var Model = /*#__PURE__*/function () {
         complete: false
       };
       this.todos.push(todo);
-    } // Map through all todos, and replace the text of the todo with the specified id
 
+      this._commit(this.todos);
+    }
   }, {
     key: "editTodo",
     value: function editTodo(id, updatedText) {
@@ -165,16 +168,18 @@ var Model = /*#__PURE__*/function () {
           complete: todo.complete
         } : todo;
       });
-    } // Filter a todo out of the array by id
 
+      this._commit(this.todos);
+    }
   }, {
     key: "deleteTodo",
     value: function deleteTodo(id) {
       this.todos = this.todos.filter(function (todo) {
         return todo.id !== id;
       });
-    } // Flip the complete boolean on the specified todo
 
+      this._commit(this.todos);
+    }
   }, {
     key: "toggleTodo",
     value: function toggleTodo(id) {
@@ -185,6 +190,8 @@ var Model = /*#__PURE__*/function () {
           complete: !todo.complete
         } : todo;
       });
+
+      this._commit(this.todos);
     }
   }]);
 
@@ -195,27 +202,23 @@ var View = /*#__PURE__*/function () {
   function View() {
     _classCallCheck(this, View);
 
-    // root of element
-    this.app = this.getElement('#root'); // title of element
-
-    this.title = this.createElement('h1');
-    this.title.textContent = 'TODO-LIST';
-    this.title.textAlignLast = 'center';
-    this.title.style.textAlign = 'center'; // form which includes, input and submit button
-
+    this.app = this.getElement('#root');
     this.form = this.createElement('form');
     this.input = this.createElement('input');
     this.input.type = 'text';
     this.input.placeholder = 'Add todo';
     this.input.name = 'todo';
     this.submitButton = this.createElement('button');
-    this.submitButton.textContent = 'Submit'; // todo list
-
-    this.todoList = this.createElement('ul', 'todo-list'); // append the input and submit button in form
-
-    this.form.append(this.input, this.submitButton); // append the title, form and todoList in the form
-
+    this.submitButton.textContent = 'Submit';
+    this.form.append(this.input, this.submitButton);
+    this.title = this.createElement('h1');
+    this.title.textContent = 'TODO-LIST';
+    this.title.style.textAlign = 'center';
+    this.todoList = this.createElement('ul', 'todo-list');
     this.app.append(this.title, this.form, this.todoList);
+    this._temporaryTodoText = '';
+
+    this._initLocalListeners();
   }
 
   _createClass(View, [{
@@ -229,70 +232,129 @@ var View = /*#__PURE__*/function () {
       this.input.value = '';
     }
   }, {
-    key: "displayTodos",
-    value: function displayTodos(todos) {
-      var _this = this;
-
-      // delete all notes
-      while (this.todoList.firstChild) {
-        this.todoList.removeChild(this.todoList.firstChild); // show default message
-
-        if (todos.length === 0) {
-          var p = this.createElement('p');
-          p.textContent = 'Empty. Add todo?';
-          this.todoList.append(p);
-        } else {
-          // create todo item notes for each todo in state
-          todos.forEach(function (todo) {
-            var li = _this.createElement('li');
-
-            li.id = todo.id; // each todo items will have a checkbox which you can toggle
-
-            var checkbox = _this.createElement('input');
-
-            checkbox.type = 'checkbox';
-            checkbox.checked = todo.complete; // todo item text will be in a contenteditable span
-
-            var span = _this.createElement('span');
-
-            span.contentEditable = true;
-            span.classList.add('editable'); // If the todo is complete, it will have a strikethrough
-
-            if (todo.complete) {
-              var strike = _this.createElement('s');
-
-              strike.textContent = todo.text;
-              span.append(strike);
-            } else {
-              // otherwise just display the text
-              span.textContent = todo.text;
-            } // delete button in items
-
-
-            var deleteButton = _this.createElement('button', 'delete');
-
-            deleteButton.textContent = 'Delete';
-            li.append(checkbox, span, deleteButton); // append notes to the todo list
-
-            _this.todoList.append(li);
-          });
-        }
-      }
-    } // Create an element with an optional CSS class
-
-  }, {
     key: "createElement",
     value: function createElement(tag, className) {
       var element = document.createElement(tag);
       if (className) element.classList.add(className);
       return element;
-    } // Retrieve an element from the DOM
-
+    }
   }, {
     key: "getElement",
     value: function getElement(selector) {
       var element = document.querySelector(selector);
       return element;
+    }
+  }, {
+    key: "displayTodos",
+    value: function displayTodos(todos) {
+      var _this = this;
+
+      // Delete all notes
+      while (this.todoList.firstChild) {
+        this.todoList.removeChild(this.todoList.firstChild);
+      } // Show default message
+
+
+      if (todos.length === 0) {
+        var p = this.createElement('p');
+        p.textContent = 'Nothing to do! Add a task?';
+        this.todoList.append(p);
+      } else {
+        // Create notes
+        todos.forEach(function (todo) {
+          var li = _this.createElement('li');
+
+          li.id = todo.id;
+
+          var checkbox = _this.createElement('input');
+
+          checkbox.type = 'checkbox';
+          checkbox.checked = todo.complete;
+
+          var span = _this.createElement('span');
+
+          span.contentEditable = true;
+          span.classList.add('editable');
+
+          if (todo.complete) {
+            var strike = _this.createElement('s');
+
+            strike.textContent = todo.text;
+            span.append(strike);
+          } else {
+            span.textContent = todo.text;
+          }
+
+          var deleteButton = _this.createElement('button', 'delete');
+
+          deleteButton.textContent = 'Delete';
+          li.append(checkbox, span, deleteButton); // Append notes
+
+          _this.todoList.append(li);
+        });
+      } // Debugging
+
+
+      console.log('todos', todos);
+    }
+  }, {
+    key: "_initLocalListeners",
+    value: function _initLocalListeners() {
+      var _this2 = this;
+
+      this.todoList.addEventListener('input', function (event) {
+        if (event.target.className === 'editable') {
+          _this2._temporaryTodoText = event.target.innerText;
+        }
+      });
+    }
+  }, {
+    key: "bindAddTodo",
+    value: function bindAddTodo(handler) {
+      var _this3 = this;
+
+      this.form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        if (_this3._todoText) {
+          handler(_this3._todoText);
+
+          _this3._resetInput();
+        }
+      });
+    }
+  }, {
+    key: "bindDeleteTodo",
+    value: function bindDeleteTodo(handler) {
+      this.todoList.addEventListener('click', function (event) {
+        if (event.target.className === 'delete') {
+          var id = parseInt(event.target.parentElement.id);
+          handler(id);
+        }
+      });
+    }
+  }, {
+    key: "bindEditTodo",
+    value: function bindEditTodo(handler) {
+      var _this4 = this;
+
+      this.todoList.addEventListener('focusout', function (event) {
+        if (_this4._temporaryTodoText) {
+          var id = parseInt(event.target.parentElement.id);
+          handler(id, _this4._temporaryTodoText);
+          _this4._temporaryTodoText = '';
+        }
+      });
+    }
+  }, {
+    key: "bindToggleTodo",
+    value: function bindToggleTodo(handler) {
+      this.todoList.addEventListener('change', function (event) {
+        if (event.target.type === 'checkbox') {
+          var id = parseInt(event.target.parentElement.id);
+          handler(id);
+        }
+      });
     }
   }]);
 
@@ -300,32 +362,38 @@ var View = /*#__PURE__*/function () {
 }();
 
 var Controller = /*#__PURE__*/_createClass(function Controller(model, view) {
-  var _this2 = this;
+  var _this5 = this;
 
   _classCallCheck(this, Controller);
 
+  _defineProperty(this, "onTodoListChanged", function (todos) {
+    _this5.view.displayTodos(todos);
+  });
+
   _defineProperty(this, "handleAddTodo", function (todoText) {
-    _this2.model.addTodo(todoText);
+    _this5.model.addTodo(todoText);
   });
 
   _defineProperty(this, "handleEditTodo", function (id, todoText) {
-    _this2.model.editTodo(id, todoText);
+    _this5.model.editTodo(id, todoText);
   });
 
   _defineProperty(this, "handleDeleteTodo", function (id) {
-    _this2.model.deleteTodo(id);
+    _this5.model.deleteTodo(id);
   });
 
   _defineProperty(this, "handleToggleTodo", function (id) {
-    _this2.model.toggleTodo(id);
-  });
-
-  _defineProperty(this, "onTodoListChanged", function (todos) {
-    _this2.view.displayTodos(todos);
+    _this5.model.toggleTodo(id);
   });
 
   this.model = model;
-  this.view = view; // display initial todos
+  this.view = view; // Explicit this binding
+
+  this.model.bindTodoListChanged(this.onTodoListChanged);
+  this.view.bindAddTodo(this.handleAddTodo);
+  this.view.bindEditTodo(this.handleEditTodo);
+  this.view.bindDeleteTodo(this.handleDeleteTodo);
+  this.view.bindToggleTodo(this.handleToggleTodo); // Display initial todos
 
   this.onTodoListChanged(this.model.todos);
 });
@@ -359,7 +427,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58996" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53819" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
