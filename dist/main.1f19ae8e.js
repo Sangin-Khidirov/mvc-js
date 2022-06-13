@@ -120,6 +120,8 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 })({"main.js":[function(require,module,exports) {
 'use strict';
 
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -133,11 +135,11 @@ var Model = /*#__PURE__*/function () {
     // The state of the model, an array of todo objects, prepopulated with some data
     this.todos = [{
       id: 1,
-      text: 'Run a marathon',
+      text: 'First one',
       complete: false
     }, {
       id: 2,
-      text: 'Plant a garden',
+      text: 'Second one',
       complete: false
     }];
   }
@@ -189,18 +191,146 @@ var Model = /*#__PURE__*/function () {
   return Model;
 }();
 
-var View = /*#__PURE__*/_createClass(function View() {
-  _classCallCheck(this, View);
-});
+var View = /*#__PURE__*/function () {
+  function View() {
+    _classCallCheck(this, View);
+
+    // root of element
+    this.app = this.getElement('#root'); // title of element
+
+    this.title = this.createElement('h1');
+    this.title.textContent = 'TODO-LIST';
+    this.title.textAlignLast = 'center';
+    this.title.style.textAlign = 'center'; // form which includes, input and submit button
+
+    this.form = this.createElement('form');
+    this.input = this.createElement('input');
+    this.input.type = 'text';
+    this.input.placeholder = 'Add todo';
+    this.input.name = 'todo';
+    this.submitButton = this.createElement('button');
+    this.submitButton.textContent = 'Submit'; // todo list
+
+    this.todoList = this.createElement('ul', 'todo-list'); // append the input and submit button in form
+
+    this.form.append(this.input, this.submitButton); // append the title, form and todoList in the form
+
+    this.app.append(this.title, this.form, this.todoList);
+  }
+
+  _createClass(View, [{
+    key: "_todoText",
+    get: function get() {
+      return this.input.value;
+    }
+  }, {
+    key: "_resetInput",
+    value: function _resetInput() {
+      this.input.value = '';
+    }
+  }, {
+    key: "displayTodos",
+    value: function displayTodos(todos) {
+      var _this = this;
+
+      // delete all notes
+      while (this.todoList.firstChild) {
+        this.todoList.removeChild(this.todoList.firstChild); // show default message
+
+        if (todos.length === 0) {
+          var p = this.createElement('p');
+          p.textContent = 'Empty. Add todo?';
+          this.todoList.append(p);
+        } else {
+          // create todo item notes for each todo in state
+          todos.forEach(function (todo) {
+            var li = _this.createElement('li');
+
+            li.id = todo.id; // each todo items will have a checkbox which you can toggle
+
+            var checkbox = _this.createElement('input');
+
+            checkbox.type = 'checkbox';
+            checkbox.checked = todo.complete; // todo item text will be in a contenteditable span
+
+            var span = _this.createElement('span');
+
+            span.contentEditable = true;
+            span.classList.add('editable'); // If the todo is complete, it will have a strikethrough
+
+            if (todo.complete) {
+              var strike = _this.createElement('s');
+
+              strike.textContent = todo.text;
+              span.append(strike);
+            } else {
+              // otherwise just display the text
+              span.textContent = todo.text;
+            } // delete button in items
+
+
+            var deleteButton = _this.createElement('button', 'delete');
+
+            deleteButton.textContent = 'Delete';
+            li.append(checkbox, span, deleteButton); // append notes to the todo list
+
+            _this.todoList.append(li);
+          });
+        }
+      }
+    } // Create an element with an optional CSS class
+
+  }, {
+    key: "createElement",
+    value: function createElement(tag, className) {
+      var element = document.createElement(tag);
+      if (className) element.classList.add(className);
+      return element;
+    } // Retrieve an element from the DOM
+
+  }, {
+    key: "getElement",
+    value: function getElement(selector) {
+      var element = document.querySelector(selector);
+      return element;
+    }
+  }]);
+
+  return View;
+}();
 
 var Controller = /*#__PURE__*/_createClass(function Controller(model, view) {
+  var _this2 = this;
+
   _classCallCheck(this, Controller);
 
+  _defineProperty(this, "handleAddTodo", function (todoText) {
+    _this2.model.addTodo(todoText);
+  });
+
+  _defineProperty(this, "handleEditTodo", function (id, todoText) {
+    _this2.model.editTodo(id, todoText);
+  });
+
+  _defineProperty(this, "handleDeleteTodo", function (id) {
+    _this2.model.deleteTodo(id);
+  });
+
+  _defineProperty(this, "handleToggleTodo", function (id) {
+    _this2.model.toggleTodo(id);
+  });
+
+  _defineProperty(this, "onTodoListChanged", function (todos) {
+    _this2.view.displayTodos(todos);
+  });
+
   this.model = model;
-  this.view = view;
+  this.view = view; // display initial todos
+
+  this.onTodoListChanged(this.model.todos);
 });
 
-var application = new Controller(new Model(), new View());
+var app = new Controller(new Model(), new View());
 },{}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
@@ -229,7 +359,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "57779" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58996" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
