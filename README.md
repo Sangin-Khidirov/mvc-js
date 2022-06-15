@@ -51,7 +51,7 @@ class Controller {
 
 [MVC на чистом JavaScript](https://habr.com/ru/company/ruvds/blog/333856/);
 
-[Build a Simple MVC App From Scratch in JavaScript](Build a Simple MVC App From Scratch in JavaScript);
+[Build a Simple MVC App in JavaScript](https://www.taniarascia.com/javascript-mvc-todo-app/);
 
 [Паттерны для новичков: MVC vs MVP vs MVVM](https://habr.com/ru/post/215605/).
 
