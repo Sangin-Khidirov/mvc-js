@@ -117,9 +117,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   }
 
   return newRequire;
-})({"main.js":[function(require,module,exports) {
-'use strict';
-
+})({"script.js":[function(require,module,exports) {
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -128,6 +126,11 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); Object.defineProperty(Constructor, "prototype", { writable: false }); return Constructor; }
 
+/**
+ * @class Model
+ *
+ * Manages the data of the application.
+ */
 var Model = /*#__PURE__*/function () {
   function Model() {
     _classCallCheck(this, Model);
@@ -197,6 +200,12 @@ var Model = /*#__PURE__*/function () {
 
   return Model;
 }();
+/**
+ * @class View
+ *
+ * Visual representation of the model.
+ */
+
 
 var View = /*#__PURE__*/function () {
   function View() {
@@ -212,8 +221,7 @@ var View = /*#__PURE__*/function () {
     this.submitButton.textContent = 'Submit';
     this.form.append(this.input, this.submitButton);
     this.title = this.createElement('h1');
-    this.title.textContent = 'TODO-LIST';
-    this.title.style.textAlign = 'center';
+    this.title.textContent = 'Todos';
     this.todoList = this.createElement('ul', 'todo-list');
     this.app.append(this.title, this.form, this.todoList);
     this._temporaryTodoText = '';
@@ -249,7 +257,7 @@ var View = /*#__PURE__*/function () {
     value: function displayTodos(todos) {
       var _this = this;
 
-      // Delete all notes
+      // Delete all nodes
       while (this.todoList.firstChild) {
         this.todoList.removeChild(this.todoList.firstChild);
       } // Show default message
@@ -260,7 +268,7 @@ var View = /*#__PURE__*/function () {
         p.textContent = 'Nothing to do! Add a task?';
         this.todoList.append(p);
       } else {
-        // Create notes
+        // Create nodes
         todos.forEach(function (todo) {
           var li = _this.createElement('li');
 
@@ -288,14 +296,14 @@ var View = /*#__PURE__*/function () {
           var deleteButton = _this.createElement('button', 'delete');
 
           deleteButton.textContent = 'Delete';
-          li.append(checkbox, span, deleteButton); // Append notes
+          li.append(checkbox, span, deleteButton); // Append nodes
 
           _this.todoList.append(li);
         });
       } // Debugging
 
 
-      console.log('todos', todos);
+      console.log(todos);
     }
   }, {
     key: "_initLocalListeners",
@@ -360,6 +368,15 @@ var View = /*#__PURE__*/function () {
 
   return View;
 }();
+/**
+ * @class Controller
+ *
+ * Links the user input and the view output.
+ *
+ * @param model
+ * @param view
+ */
+
 
 var Controller = /*#__PURE__*/_createClass(function Controller(model, view) {
   var _this5 = this;
@@ -427,7 +444,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50644" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "57779" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
@@ -603,5 +620,5 @@ function hmrAcceptRun(bundle, id) {
     return true;
   }
 }
-},{}]},{},["../node_modules/parcel-bundler/src/builtins/hmr-runtime.js","main.js"], null)
-//# sourceMappingURL=/main.1f19ae8e.js.map
+},{}]},{},["../node_modules/parcel-bundler/src/builtins/hmr-runtime.js","script.js"], null)
+//# sourceMappingURL=/script.75da7f30.js.map
